@@ -9,13 +9,13 @@ Metrics logging utility
 
 Sample Output: `stdout`
 ```clojure
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.insert.runtime.count 8.10629431440315
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.insert.success.count 1
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.delete.success.count 0
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.query.error.count.illegal-argument-exception 1
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.insert.runtime 8.10629431440315
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.insert.success 1
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.delete.success 0
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.query.error.illegal-argument-exception 1
 20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - foo-app.insert.exit-code 255
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - bar-app.query.success.count 1
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - bar-app.query.runtime.count 8.246678392849057
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - bar-app.query.success 1
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - bar-app.query.runtime 8.246678392849057
 ```
 
 ## API
@@ -33,10 +33,10 @@ Sample Output: `stdout`
 (def action "insert")
 
 
-;; Log success count
+;; Log success
 (.success app action)
 
-;; Log failure count
+;; Log failure
 (.failure app action)
 
 ;; Log runtime
@@ -45,7 +45,7 @@ Sample Output: `stdout`
 ;; Log exit code
 (.exit-code app action 1)
 
-;; Log error count
+;; Log error
 (.error app action (java.lang.Exception. "foo"))
 ```
 
@@ -71,7 +71,7 @@ You can make your own application metric loggers using the base `Metric` and `Me
 
 ```bash
 > run-example
-20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - test-app.insert.success.count 1
+20-04-23 14:36:23 ncharles-XPS-13-9360 INFO [metrix-lawg.core:86] - test-app.insert.success 1
 ```
 
 ### Cloudwatch

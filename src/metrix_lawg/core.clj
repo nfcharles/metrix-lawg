@@ -49,19 +49,19 @@
   PMetric
   (name
     [this]
-    (format "%s.%s.runtime.count" app action)))
+    (format "%s.%s.runtime" app action)))
 
 (defrecord SuccessMetric [app action]
   PMetric
   (name
     [this]
-    (format "%s.%s.success.count" app action)))
+    (format "%s.%s.success" app action)))
 
 (defrecord ErrorMetric [app action err]
   PMetric
   (name
     [this]
-    (format "%s.%s.error.count.%s" app action (lawg.util/format-error err))))
+    (format "%s.%s.error.%s" app action (lawg.util/format-error err))))
 
 (defrecord ExitCodeMetric [app action]
   PMetric
