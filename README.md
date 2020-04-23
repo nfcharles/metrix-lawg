@@ -20,7 +20,7 @@ Sample Output: `stdout`
 
 ## API
 
-### Application Logger
+### Default Application Logger
 
 ```clojure
 (ns example
@@ -49,6 +49,9 @@ Sample Output: `stdout`
 (.error app action (java.lang.Exception. "foo"))
 ```
 
+#### Custom Loggers
+
+You can make your own application metric loggers using the base `Metric` and `MetricWriter` protocols.
 
 ## Implementations
 
@@ -80,7 +83,7 @@ Sample Output: `stdout`
   (:require [metrix-lawg.logger :as lawg.log]))
 
 (def project-namesapce "/env/test-project")
-(def app (lawg.log/application-metric-logger "test-app" :cloudwatch project-namespace))
+(def app (lawg.log/application-metric-logger "test-app" :writer :cloudwatch :args {:namespace project-namespace}))
 ```
 
 ### SNS
@@ -92,7 +95,7 @@ Sample Output: `stdout`
   (:require [metrix-lawg.logger :as lawg.log]))
 
 (def topic-arn "arn://...")
-(def app (lawg.log/application-metric-logger "test-app" :topic-arn topic-arn))
+(def app (lawg.log/application-metric-logger "test-app" :writer :sns :args {:topic-arn topic-arn}))
 ```
 
 ```bash

@@ -73,13 +73,10 @@
 ;; ---
 
 (defn application-metric-logger
-  [app-name & {:keys [writer namespace topic-arn]
-               :or {writer    :stdout
-                    namespace nil
-                    topic-arn nil}}]
-  (AppMetricLogger. app-name (lawg/metric-writer writer
-                                                 :namespace namespace
-                                                 :topic-arn topic-arn)))
+  [app-name & {:keys [writer args]
+               :or {writer :stdout
+                    args   {}}}]
+  (AppMetricLogger. app-name (lawg/metric-writer writer :args args)))
 
 
 ;; ========
@@ -90,18 +87,24 @@
   [args]
   (nth args 0))
 
+(defn parse-namespace
+  [args]
+  (nth args 1))
+
+
 ;; Test!!
 (defn -main
   [& args]
-  (let [sns-arn  (parse-arn args)
-        foo-app  (application-metric-logger "foo-app")
-        bar-app  (application-metric-logger "bar-app")
-        sns-app  (application-metric-logger "test" :writer :sns :topic-arn sns-arn)]
+  (let [sns-arn   (parse-arn args)
+        namesapce (parse-namespace args)
+        foo-app   (application-metric-logger "foo-app")
+        bar-app   (application-metric-logger "bar-app")
+        sns-app   (application-metric-logger "test" :writer :sns :args {:topic-arn sns-arn})
+	cw-app    (application-metric-logger "test" :writer :cloudwatch :args {:namespace namespace})]
     (.runtime   foo-app "insert" (* 10 (rand)))
     (.success   foo-app "insert")
     (.failure   foo-app "delete")
     (.error     foo-app "query" (java.lang.IllegalArgumentException. "Foo"))
     (.exit-code foo-app "insert" 255)
     (.success   bar-app "query")
-    (.runtime   bar-app "query" (* 10 (rand)))
-    (.success   sns-app "insert")))
+    (.runtime   bar-app "query" (* 10 (rand)))))

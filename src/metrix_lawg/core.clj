@@ -100,13 +100,13 @@
       (.withUnit (StandardUnit/None))
       (.withValue (double value))))
 
-(defrecord CloudWatchMetricWriter [^AmazonCloudWatch cw namespace]
+(defrecord CloudWatchMetricWriter [^AmazonCloudWatch cw args]
   PMetricWriter
   (write
     [this metric value]
     (try
       (let [^PutMetricDataRequest req (-> (PutMetricDataRequest.)
-                                          (.withNamespace namespace)
+                                          (.withNamespace (:namespace args))
                                           (.withMetricData (into-array MetricDatum [(metric-datum metric value)])))
             ^PutMetricDataResult res (.putMetricData cw req)]
         (infof "METRIC_DATA_RESPONSE=%s" res))
@@ -123,12 +123,12 @@
   [metric value]
   (json/write-str {:name (.name metric) :value value}))
 
-(defrecord SNSMetricWriter [^AmazonSNS sns topic-arn]
+(defrecord SNSMetricWriter [^AmazonSNS sns args]
  PMetricWriter
  (write
    [this metric value]
    (try
-     (let [^PublishRequest publishRequest (PublishRequest. topic-arn (pack-json metric value))
+     (let [^PublishRequest publishRequest (PublishRequest. (:topic-arn args) (pack-json metric value))
            ^PublishResult publishResponse (.publish sns publishRequest)]
        (infof "SNS_PUBLISH_RESPONSE=%s" (.getMessageId publishResponse)))
      (catch Exception e
@@ -145,13 +145,12 @@
   (StdoutMetricWriter.))
 
 (defn cloudwatch-writer
-  [& {:keys [namespace]
-      :or {namespace default-namespace}}]
-  (CloudWatchMetricWriter. (AmazonCloudWatchClientBuilder/defaultClient) namespace))
+  [args]
+  (CloudWatchMetricWriter. (AmazonCloudWatchClientBuilder/defaultClient) args))
 
 (defn sns-writer
-  [topic-arn]
-  (SNSMetricWriter. (AmazonSNSClientBuilder/defaultClient) topic-arn))
+  [args]
+  (SNSMetricWriter. (AmazonSNSClientBuilder/defaultClient) args))
 
 
 ;; ---
@@ -159,13 +158,12 @@
 ;; ---
 
 (defn metric-writer
-  [writer & {:keys [namespace topic-arn]
-             :or {namespace default-namespace
-                  topic-arn nil}}]
+  [writer & {:keys [args]
+             :or {args {}}}]
   (condp = writer
     :stdout     (stdout-writer)
-    :cloudwatch (cloudwatch-writer :namespace namespace)
-    :sns        (sns-writer topic-arn)
+    :cloudwatch (cloudwatch-writer args)
+    :sns        (sns-writer args)
     (throw (java.lang.Exception. (format "Unsupported metrics writer: %s" writer)))))
 
 
