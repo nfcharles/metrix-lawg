@@ -28,19 +28,23 @@
 
 (defprotocol PApplicationMetricLogger
   ;; Writes app specific metrics
-  (runtime   [this action value])
-  (error     [this action value])
-  (success   [this action])
-  (failure   [this action])
-  (exit-code [this action value]))
+  (runtime   [this value] [this action value])
+  (error     [this value] [this action value])
+  (success   [this]       [this action])
+  (failure   [this]       [this action])
+  (exit-code [this value] [this action value]))
 
 
+
+;; -----------
+;; -  Impls  -
+;; -----------
 
 ;; ---
-;; - Impls
+;; Generic Logger (Action Agnostic)
 ;; ---
 
-(defrecord AppMetricLogger [app writer]
+(deftype ApplicationMetricLogger [app writer]
   PApplicationMetricLogger
   (runtime
     [this action value]
@@ -69,6 +73,34 @@
 
 
 ;; ---
+;; - Action Specific Logger
+;; ---
+
+
+(deftype ApplicationActionMetricLogger [action logger]
+  PApplicationMetricLogger
+  (runtime
+    [this value]
+    (.runtime logger action value))
+
+  (success
+    [this]
+    (.success logger action))
+
+  (failure
+    [this]
+    (.failure logger action))
+
+  (error
+    [this value]
+    (.error logger action value))
+
+  (exit-code
+    [this value]
+    (.exit-code logger action value)))
+
+
+;; ---
 ;; - Factory
 ;; ---
 
@@ -76,7 +108,15 @@
   [app-name & {:keys [writer args]
                :or {writer :stdout
                     args   {}}}]
-  (AppMetricLogger. app-name (lawg/metric-writer writer :args args)))
+  (ApplicationMetricLogger. app-name (lawg/metric-writer writer :args args)))
+
+
+(defn application-action-metric-logger
+  [app-name action & {:keys [writer args]
+                      :or {writer :stdout
+                           args   {}}}]
+  (ApplicationActionMetricLogger. action (application-metric-logger app-name :writer writer :args args)))
+
 
 
 ;; ========
@@ -100,11 +140,13 @@
         foo-app   (application-metric-logger "foo-app")
         bar-app   (application-metric-logger "bar-app")
         sns-app   (application-metric-logger "test" :writer :sns :args {:topic-arn sns-arn})
-	cw-app    (application-metric-logger "test" :writer :cloudwatch :args {:namespace namespace})]
+	cw-app    (application-metric-logger "test" :writer :cloudwatch :args {:namespace namespace})
+        aaml      (application-action-metric-logger "biz-app" "query")]
     (.runtime   foo-app "insert" (* 10 (rand)))
     (.success   foo-app "insert")
     (.failure   foo-app "delete")
-    (.error     foo-app "query" (java.lang.IllegalArgumentException. "Foo"))
+    (.error     foo-app "delete" (java.lang.IllegalArgumentException. "Foo"))
     (.exit-code foo-app "insert" 255)
-    (.success   bar-app "query")
-    (.runtime   bar-app "query" (* 10 (rand)))))
+    (.failure   aaml)
+    (.success   aaml)
+    (.runtime   aaml (* 10 (rand)))))

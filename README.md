@@ -20,11 +20,11 @@ Sample Output: `stdout`
 
 ## API
 
-### Default Application Logger
+### Default Application Logger (Action Agnostic)
 
 ```clojure
 (ns example
-  (:require [metrix-lawg.logger:as lawg.log]))
+  (:require [metrix-lawg.logger :as lawg.log]))
 
 (def app (lawg.log/application-metric-logger "test-app"))
 
@@ -47,6 +47,22 @@ Sample Output: `stdout`
 
 ;; Log error
 (.error app action (java.lang.Exception. "foo"))
+```
+
+### Action Specific Logger
+
+```clojure
+
+(def logger (lawg.log/application-action-metric-logger "biz-app" "query"))
+
+(.success logger)
+(.runtime logger (timer))
+```
+
+```bash
+> run-example
+20-04-23 21:52:28 ncharles-XPS-13-9360 INFO [metrix-lawg.core:87] - biz-app.query.success 1
+20-04-23 21:52:28 ncharles-XPS-13-9360 INFO [metrix-lawg.core:87] - biz-app.query.runtime 9.25572592520998
 ```
 
 #### Custom Loggers
