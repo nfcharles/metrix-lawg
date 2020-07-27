@@ -17,70 +17,64 @@
 
 
 
-;; TODO: Break up into packages
 
-(def default-namespace "/apps/metrix-lawg")
+;; ================
+;; *  Interfaces  *
+;; ================
 
 
-;; =============
-;; * Protocols *
-;; =============
+(defprotocol IMetric
+  (name [this]))
 
-(defprotocol PMetric
-  ;;Returns metric name
-  (name   [this]))
-
-(defprotocol PMetricWriter
-  ;; Writes metric to stream
+(defprotocol IMetricWriter
   (write [this metric value]))
 
 
-
 ;; ==================
-;; * Protocol Impls *
+;; *  Record Impls  *
 ;; ==================
 
-;; ===
-;; - Metrics
-;; ===
 
+;; =============
+;; -  Metrics  -
+;; -------------
 
 (defrecord TimeMetric [app action]
-  PMetric
+  metrix_lawg.core.IMetric
   (name
     [this]
     (format "%s.%s.runtime" app action)))
 
 (defrecord SuccessMetric [app action]
-  PMetric
+  metrix_lawg.core.IMetric
   (name
     [this]
     (format "%s.%s.success" app action)))
 
 (defrecord ErrorMetric [app action err]
-  PMetric
+  metrix_lawg.core.IMetric
   (name
     [this]
     (format "%s.%s.error.%s" app action (lawg.util/format-error err))))
 
 (defrecord ExitCodeMetric [app action]
-  PMetric
+  metrix_lawg.core.IMetric
   (name
     [this]
     (format "%s.%s.exit-code" app action)))
 
 
 
-;; ===
-;; - MetricWriters
-;; ===
+;; ===================
+;; -  MetricWriters  -
+;; -------------------
 
-;; ---
-;; - Stdout Writer
-;; ---
+;; -----------------
+;; - Stdout Writer -
+;; -----------------
 
 (defrecord StdoutMetricWriter []
-  PMetricWriter
+  metrix_lawg.core.IMetricWriter
   (write
     [this metric value]
     (try
@@ -89,19 +83,19 @@
         (errorf "Error writing to stdout: %s" e)))))
 
 
-;; ---
-;; - CloudWatch Writers
-;; ---
+;; ---------------------
+;; - CloudWatch Writer -
+;; ---------------------
 
 (defn metric-datum ^MetricDatum
-  [metric value]
+  [^metrix_lawg.core.IMetric metric value]
   (-> (MetricDatum.)
       (.withMetricName (.name metric))
       (.withUnit (StandardUnit/None))
       (.withValue (double value))))
 
 (defrecord CloudWatchMetricWriter [^AmazonCloudWatch cw args]
-  PMetricWriter
+  metrix_lawg.core.IMetricWriter
   (write
     [this metric value]
     (try
@@ -114,50 +108,48 @@
         (errorf "Error writing to cloudwatch: %s" e)))))
 
 
+;; --------------
+;; - SNS Writer -
+;; --------------
 
-;; ---
-;; - SNS Writers
-;; ---
+(defn -wrtj
+  [data]
+  (json/write-str data))
 
-(defn pack-json
-  [metric value]
-  (json/write-str {:name (.name metric) :value value}))
+(defn sns-message
+  [^metrix_lawg.core.IMetric metric value]
+  (if (:metadata metric)
+    (-wrtj {:metric {:name (.name metric) :value value :meta (:metadata metric)}})
+    (-wrtj {:metric {:name (.name metric) :value value}})))
 
 (defrecord SNSMetricWriter [^AmazonSNS sns args]
- PMetricWriter
- (write
-   [this metric value]
-   (try
-     (let [^PublishRequest publishRequest (PublishRequest. (:topic-arn args) (pack-json metric value))
-           ^PublishResult publishResponse (.publish sns publishRequest)]
-       (infof "SNS_PUBLISH_RESPONSE=%s" (.getMessageId publishResponse)))
-     (catch Exception e
-       (errorf "Error writing to sns: %s" e)))))
+  metrix_lawg.core.IMetricWriter
+  (write [this metric value]
+    (try
+      (let [^PublishRequest publishRequest (PublishRequest. (:topic-arn args) (sns-message metric value))
+            ^PublishResult publishResponse (.publish sns publishRequest)]
+        (infof "SNS_PUBLISH_RESPONSE=%s" (.getMessageId publishResponse)))
+      (catch Exception e
+        (errorf "Error writing to sns: %s" e)))))
 
 
+;; =========================
+;; -  MetricWriter Factory -
+;; -------------------------
 
-;; ===
-;; ** MetricWriter Factory **
-;; ===
-
-(defn stdout-writer
+(defn ^metrix_lawg.core.StdoutMetricWriter stdout-writer
   []
   (StdoutMetricWriter.))
 
-(defn cloudwatch-writer
+(defn ^metrix_lawg.core.CloudWatchMetricWriter cloudwatch-writer
   [args]
   (CloudWatchMetricWriter. (AmazonCloudWatchClientBuilder/defaultClient) args))
 
-(defn sns-writer
+(defn ^metrix_lawg.core.SNSMetricWriter sns-writer
   [args]
   (SNSMetricWriter. (AmazonSNSClientBuilder/defaultClient) args))
 
-
-;; ---
-;; - Factory
-;; ---
-
-(defn metric-writer
+(defn ^metrix_lawg.core.IMetricWriter metric-writer
   [writer & {:keys [args]
              :or {args {}}}]
   (condp = writer
@@ -173,7 +165,7 @@
 ;; ========
 
 (defrecord TestMetric [app action]
-  PMetric
+  IMetric
   (name [this]
     (format "%s.%s.test.count" app action)))
 
@@ -181,8 +173,8 @@
 ;; Test!!
 (defn -main
   [& args]
-  (let [std-writer  (metric-writer :stdout)
-        cw-writer   (metric-writer :cloudwatch)]
+  (let [^metrix_lawg.core.IMetricWriter std-writer  (metric-writer :stdout)
+        ^metrix_lawg.core.IMetricWriter cw-writer   (metric-writer :cloudwatch)]
     (.write std-writer (TestMetric. "foo" "insert") 1)
     (.write std-writer (TestMetric. "bar" "delete") 2)
     (.write std-writer (TestMetric. "baz" "exec") 3)))

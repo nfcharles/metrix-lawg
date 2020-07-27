@@ -99,8 +99,13 @@ You can make your own application metric loggers using the base `Metric` and `Me
   (:require [metrix-lawg.logger :as lawg.log]))
 
 (def project-namesapce "/env/test-project")
-(def app (lawg.log/application-metric-logger "test-app" :writer :cloudwatch :args {:namespace project-namespace}))
+(let [app (lawg.log/application-metric-logger "test-app" :writer :cloudwatch :args {:namespace project-namespace})]
+  (try
+    ...
+    (catch
+      (.failure app "exec"))))
 ```
+
 
 ### SNS
 
@@ -111,12 +116,39 @@ You can make your own application metric loggers using the base `Metric` and `Me
   (:require [metrix-lawg.logger :as lawg.log]))
 
 (def topic-arn "arn://...")
-(def app (lawg.log/application-metric-logger "test-app" :writer :sns :args {:topic-arn topic-arn}))
+(let [app (lawg.log/application-metric-logger "test-app" :writer :sns :args {:topic-arn topic-arn})]
+  (try
+    (let []
+      ...
+      (.success app "exec"))
+    (catch
+      (.failure app "exec"))))
+
 ```
 
 ```bash
 > run-example
 20-04-23 15:52:44 ncharles-XPS-13-9360 INFO [metrix-lawg.core:133] - SNS_PUBLISH_RESPONSE=a63019dc-77c2-54dc-a90d-4ec7cbce8cca
+```
+
+#### With Metadata
+
+Pass in arbitrary json object as metadata
+
+```clojure
+;; Get application logger
+
+(ns example
+  (:require [metrix-lawg.logger :as lawg.log]))
+
+(def topic-arn "arn://...")
+(let [app (lawg.log/application-metric-logger "test-app" :writer :sns :args {:topic-arn topic-arn})]
+  (try
+    (let []
+      ...
+      (.success app "exec" {:runtime-config {:foo 1 :bar 2}}))
+    (catch
+      (.failure app "exec" {:runtime-config {:foo 1 :bar 2}}))))
 ```
 
 ## License
