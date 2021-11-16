@@ -1,4 +1,7 @@
 # metrix-lawg
+[![Build Status](https://travis-ci.org/nfcharles/metrix-lawg.svg?branch=master)](https://travis-ci.org/nfcharles/metrix-lawg)
+[![codecov](https://codecov.io/gh/nfcharles/metrix-lawg/branch/master/graph/badge.svg)](https://codecov.io/gh/nfcharles/metrix-lawg)
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.nfcharles/metrix-lawg.svg)](https://clojars.org/org.clojars.nfcharles/metrix-lawg)
 
 
 Metrics logging utility
